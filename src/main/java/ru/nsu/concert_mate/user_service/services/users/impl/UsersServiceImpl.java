@@ -1,6 +1,7 @@
 package ru.nsu.concert_mate.user_service.services.users.impl;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 import ru.nsu.concert_mate.user_service.model.dto.UserDto;
@@ -15,6 +16,7 @@ import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class UsersServiceImpl implements UsersService {
     private final UsersRepository usersRepository;
     private final ModelMapper modelMapper;
@@ -23,6 +25,7 @@ public class UsersServiceImpl implements UsersService {
     public UserDto addUser(long telegramId) {
         UserEntity userEntity = new UserEntity(telegramId);
         usersRepository.save(userEntity);
+        log.info("successfully added user {}", telegramId);
         return modelMapper.map(userEntity, UserDto.class);
     }
 
@@ -33,8 +36,10 @@ public class UsersServiceImpl implements UsersService {
         if (optionalUser.isPresent()) {
             final UserEntity userEntity = optionalUser.get();
             usersRepository.delete(userEntity);
+            log.info("successfully deleted user {}", telegramId);
             return modelMapper.map(userEntity, UserDto.class);
         } else {
+            log.warn("can't delete user {} because there is no user with this telegram id", telegramId);
             throw new UserNotFoundException();
         }
     }
@@ -43,8 +48,10 @@ public class UsersServiceImpl implements UsersService {
     public Optional<UserDto> findUser(long telegramId) {
         final Optional<UserEntity> optionalUserEntity = usersRepository.findByTelegramId(telegramId);
         if (optionalUserEntity.isPresent()) {
+            log.info("successfully found user with telegram id {}", telegramId);
             return Optional.ofNullable(modelMapper.map(optionalUserEntity, UserDto.class));
         } else {
+            log.error("can't find user with telegram id {}", telegramId);
             return Optional.empty();
         }
     }
@@ -56,7 +63,7 @@ public class UsersServiceImpl implements UsersService {
         for (final var it : usersRepository.findAll()) {
             result.add(modelMapper.map(it, UserDto.class));
         }
-
+        log.info("successfully found all users");
         return result;
     }
 }

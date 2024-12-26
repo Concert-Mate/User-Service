@@ -1,6 +1,7 @@
 package ru.nsu.concert_mate.user_service.scheduler;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -18,6 +19,7 @@ import ru.nsu.concert_mate.user_service.services.users.UsersShownConcertsService
 import ru.nsu.concert_mate.user_service.services.users.UsersTrackListsService;
 import ru.nsu.concert_mate.user_service.services.users.exceptions.InternalErrorException;
 
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -26,6 +28,7 @@ import java.util.Map;
 @Configuration
 @EnableScheduling
 @RequiredArgsConstructor
+@Slf4j
 public class ConcertsScheduler {
     private final UsersService usersService;
     private final UsersCitiesService usersCitiesService;
@@ -43,18 +46,20 @@ public class ConcertsScheduler {
                     mapItem.add(user);
                 }
             } catch (InternalErrorException ignored) {
-                //TODO logging
+                log.error("can't get info for {} track list", trackList);
             } catch (MusicServiceException e) {
+                log.warn("track list {} is invalid", trackList);
+                log.info("deleting track list {} for user {}", trackList, user.getTelegramId());
                 deleteUserPlayListNoExcept(user.getTelegramId(), trackList);
             }
         }
     }
-
+    //this method is used only to delete invalid track lists
     private void deleteUserPlayListNoExcept(long telegramId, String playListUrl) {
         try {
             usersTrackListsService.deleteUserTrackList(telegramId, playListUrl);
         } catch (Exception ignored) {
-            //TODO logging
+            log.warn("can't delete invalid track list {}", playListUrl);
         }
     }
 
@@ -62,14 +67,14 @@ public class ConcertsScheduler {
         try {
             brokerService.sendEvent(new BrokerEvent(user, concerts));
         } catch (BrokerException ignored) {
-            //TODO logging
+            log.error("can't send notification {} to user {}", concerts, user);
         }
 
         for (ConcertDto concert : concerts) {
             try {
                 shownConcertsService.saveShownConcert(user.getTelegramId(), concert.getAfishaUrl());
             } catch (Exception ignored) {
-                //TODO logging
+                log.error("can't save notification {} for user {}", concert, user);
             }
         }
     }
@@ -78,7 +83,7 @@ public class ConcertsScheduler {
         try {
             return shownConcertsService.hasShownConcert(user.getTelegramId(), concert.getAfishaUrl());
         } catch (Exception e) {
-            //TODO logging
+            log.warn("can't determine if concert notification is already send");
             return false;
         }
     }
@@ -94,14 +99,14 @@ public class ConcertsScheduler {
                 final List<String> userCities = usersCitiesService.getUserCities(user.getTelegramId());
                 citiesForUsers.put(user.getTelegramId(), userCities);
             } catch (Exception ignored) {
-                //TODO logging
+                log.error("can't get cities for user {}", user);
                 continue;
             }
             try {
                 final List<String> trackLists = usersTrackListsService.getUserTrackLists(user.getTelegramId());
                 fillArtistsForUsers(trackLists, artistsForUsers, user);
             } catch (Exception ignored) {
-                //TODO logging
+                log.error("can't get track lists for user {}", user);
             }
         }
 
@@ -120,7 +125,7 @@ public class ConcertsScheduler {
                     }
                 }
             } catch (Exception ignored) {
-                //TODO logging
+               log.error("can't get concerts for artist with id {}", entry.getKey());
             }
         }
 
@@ -128,7 +133,6 @@ public class ConcertsScheduler {
             sendConcertToUser(entry.getValue(), entry.getKey());
         }
 
-        // TODO: log to file
-        System.out.println("scheduling is finished");
+        log.info("scheduling is finished");
     }
 }

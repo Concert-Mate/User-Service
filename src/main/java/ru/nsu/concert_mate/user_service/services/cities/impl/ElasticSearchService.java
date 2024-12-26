@@ -1,6 +1,7 @@
 package ru.nsu.concert_mate.user_service.services.cities.impl;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import net.devh.boot.grpc.client.inject.GrpcClient;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
@@ -14,6 +15,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ElasticSearchService implements CitiesService {
     @GrpcClient("elastic-service")
     private CitySearchGrpc.CitySearchBlockingStub stub;
@@ -31,9 +33,10 @@ public class ElasticSearchService implements CitiesService {
         try {
             response = stub.searchByName(request);
         } catch (Exception exception) {
+            log.error("can't find city {} because {}", cityName, exception.getLocalizedMessage());
             throw new CitiesServiceException(String.format("Request with \"%s\" failed", cityName), exception);
         }
-
+        log.info("successfully finished request for city {}", cityName);
         return new CitySearchByNameResult(
                 mapCode(response.getCode()),
                 mapOptions(response.getOptionsList())
@@ -52,9 +55,10 @@ public class ElasticSearchService implements CitiesService {
         try {
             response = stub.searchByCoords(request);
         } catch (Exception exception) {
+            log.error("can't find city by {} because {}", coords, exception.getLocalizedMessage());
             throw new CitiesServiceException(String.format("Request with lat=%f, lon=%f failed", coords.getLat(), coords.getLon()), exception);
         }
-
+        log.info("successfully finished request for city {}", coords);
         return new CitySearchByCoordsResult(
                 mapCode(response.getCode()),
                 mapOptions(response.getOptionsList())
@@ -83,8 +87,8 @@ public class ElasticSearchService implements CitiesService {
                 return CitySearchByNameCode.INTERNAL_ERROR;
             }
         }
-
-        throw new CitiesServiceException(String.format("Received unknown name-search code: %s\n", code));
+        log.error("request return  code is invalid");
+        throw new CitiesServiceException(String.format("Received unknown name-search code: %s", code));
     }
 
     private CitySearchByCoordsCode mapCode(ElasticService.CitySearchCoordsResponse.ResponseCode code) throws CitiesServiceException {
@@ -105,7 +109,7 @@ public class ElasticSearchService implements CitiesService {
                 return CitySearchByCoordsCode.INTERNAL_ERROR;
             }
         }
-
-        throw new CitiesServiceException(String.format("Received unknown coords-search code: %s\n", code));
+        log.error("request return  code is invalid");
+        throw new CitiesServiceException(String.format("Received unknown coords-search code: %s", code));
     }
 }
