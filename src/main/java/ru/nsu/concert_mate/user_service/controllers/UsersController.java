@@ -1,6 +1,7 @@
 package ru.nsu.concert_mate.user_service.controllers;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.java.Log;
 import org.springframework.web.bind.annotation.RestController;
 import ru.nsu.concert_mate.user_service.api.ApiResponseStatusCode;
 import ru.nsu.concert_mate.user_service.api.users.*;
@@ -18,6 +19,7 @@ import java.util.*;
 
 @RestController()
 @RequiredArgsConstructor
+@Log
 public class UsersController implements UsersApi {
     private final UsersService usersService;
     private final UsersCitiesService usersCitiesService;
@@ -219,12 +221,17 @@ public class UsersController implements UsersApi {
             HashSet<String> userCitiesSet = new HashSet<>(userCities);
             List<ConcertDto> ret = new ArrayList<>();
             for (int artistId : userArtists) {
-                List<ConcertDto> artistConcerts = musicService.getConcertsByArtistId(artistId);
-                for (ConcertDto concert : artistConcerts) {
-                    if (userCitiesSet.contains(concert.getCity())) {
-                        ret.add(concert);
-                        saveShownConcertNoException(telegramId, concert.getAfishaUrl());
+                try {
+                    List<ConcertDto> artistConcerts = musicService.getConcertsByArtistId(artistId);
+                    for (ConcertDto concert : artistConcerts) {
+                        if (userCitiesSet.contains(concert.getCity())) {
+                            ret.add(concert);
+                            saveShownConcertNoException(telegramId, concert.getAfishaUrl());
+                        }
                     }
+                }
+                catch (MusicServiceException e) {
+                    log.warning(e.getMessage());
                 }
             }
 
