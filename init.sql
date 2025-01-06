@@ -63,10 +63,10 @@ alter table users_access_tokens
 
 create table if not exists users_refresh_tokens
 (
-    user_id     integer not null constraint users_access_tokens_users_id_fk references users on delete cascade,
+    user_id     integer not null constraint users_refresh_tokens_users_id_fk references users on delete cascade,
     token text not null,
-    constraint  users_access_tokens_pk primary key (user_id, token)
+    constraint  users_refresh_tokens_pk primary key (user_id, token)
 );
 
-alter table users_access_tokens
+alter table users_refresh_tokens
     owner to admin;
