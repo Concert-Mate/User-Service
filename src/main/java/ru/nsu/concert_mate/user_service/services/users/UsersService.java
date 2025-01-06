@@ -11,7 +11,7 @@ public interface UsersService {
 
     UserDto deleteUser(long telegramId) throws UserNotFoundException;
 
-    Optional<UserDto> findUser(long telegramId);
+    Optional<UserDto> findUser(long id);
 
     List<UserDto> findAllUsers();
 

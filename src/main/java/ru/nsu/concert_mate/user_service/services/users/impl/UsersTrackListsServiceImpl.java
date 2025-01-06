@@ -31,7 +31,7 @@ public class UsersTrackListsServiceImpl implements UsersTrackListsService {
         if (indexSplit != -1) {
             trackListUrl = trackListUrl.substring(0, indexSplit);
         }
-        final Optional<UserEntity> foundUser = usersRepository.findByTelegramId(telegramId);
+        final Optional<UserEntity> foundUser = usersRepository.findById(telegramId);
         if (foundUser.isEmpty()) {
             throw new UserNotFoundException();
         }
@@ -57,7 +57,7 @@ public class UsersTrackListsServiceImpl implements UsersTrackListsService {
 
     @Override
     public UserTrackListDto deleteUserTrackList(long telegramId, String cityName) throws UserNotFoundException, TrackListNotAddedException {
-        final Optional<UserEntity> foundUser = usersRepository.findByTelegramId(telegramId);
+        final Optional<UserEntity> foundUser = usersRepository.findById(telegramId);
         if (foundUser.isEmpty()) {
             throw new UserNotFoundException();
         }
@@ -77,7 +77,7 @@ public class UsersTrackListsServiceImpl implements UsersTrackListsService {
 
     @Override
     public List<String> getUserTrackLists(long telegramId) throws UserNotFoundException, InternalErrorException {
-        final Optional<UserEntity> foundUser = usersRepository.findByTelegramId(telegramId);
+        final Optional<UserEntity> foundUser = usersRepository.findById(telegramId);
         if (foundUser.isEmpty()) {
             throw new UserNotFoundException();
         }

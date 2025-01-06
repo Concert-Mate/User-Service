@@ -31,7 +31,7 @@ public class UsersServiceImpl implements UsersService {
 
     @Override
     public UserDto deleteUser(long telegramId) throws UserNotFoundException {
-        final Optional<UserEntity> optionalUser = usersRepository.findByTelegramId(telegramId);
+        final Optional<UserEntity> optionalUser = usersRepository.findById(telegramId);
 
         if (optionalUser.isPresent()) {
             final UserEntity userEntity = optionalUser.get();
@@ -46,7 +46,7 @@ public class UsersServiceImpl implements UsersService {
 
     @Override
     public Optional<UserDto> findUser(long telegramId) {
-        final Optional<UserEntity> optionalUserEntity = usersRepository.findByTelegramId(telegramId);
+        final Optional<UserEntity> optionalUserEntity = usersRepository.findById(telegramId);
         if (optionalUserEntity.isPresent()) {
             log.info("successfully found user with telegram id {}", telegramId);
             return Optional.ofNullable(modelMapper.map(optionalUserEntity, UserDto.class));

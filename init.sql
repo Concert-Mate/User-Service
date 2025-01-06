@@ -4,7 +4,7 @@ create table if not exists users
 (
     id          serial constraint users_pk primary key,
     auth_code text not null,
-    auth_email text not null,
+    email text not null,
     created_at  timestamp default CURRENT_TIMESTAMP not null
 );
 

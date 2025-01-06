@@ -29,7 +29,7 @@ public class UsersCitiesServiceImpl implements UsersCitiesService {
 
     @Override
     public UserCityDto saveUserCity(long telegramId, String cityName) throws UserNotFoundException, CityAlreadyAddedException, InternalErrorException {
-        final Optional<UserEntity> foundUser = usersRepository.findByTelegramId(telegramId);
+        final Optional<UserEntity> foundUser = usersRepository.findById(telegramId);
         if (foundUser.isEmpty()) {
             log.error("can't save city because user with telegram id {} not found", telegramId);
             throw new UserNotFoundException();
@@ -55,7 +55,7 @@ public class UsersCitiesServiceImpl implements UsersCitiesService {
 
     @Override
     public UserCityDto deleteUserCity(long telegramId, String cityName) throws UserNotFoundException, CityNotAddedException {
-        final Optional<UserEntity> foundUser = usersRepository.findByTelegramId(telegramId);
+        final Optional<UserEntity> foundUser = usersRepository.findById(telegramId);
         if (foundUser.isEmpty()) {
             log.error("can't delete city because user with telegram id {} not found", telegramId);
             throw new UserNotFoundException();
@@ -77,7 +77,7 @@ public class UsersCitiesServiceImpl implements UsersCitiesService {
 
     @Override
     public List<String> getUserCities(long telegramId) throws UserNotFoundException, InternalErrorException {
-        final Optional<UserEntity> foundUser = usersRepository.findByTelegramId(telegramId);
+        final Optional<UserEntity> foundUser = usersRepository.findById(telegramId);
         if (foundUser.isEmpty()) {
             log.error("can't get cities because user with telegram id {} not found", telegramId);
             throw new UserNotFoundException();

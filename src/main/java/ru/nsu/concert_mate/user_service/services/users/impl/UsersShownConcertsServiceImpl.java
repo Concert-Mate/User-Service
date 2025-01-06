@@ -29,7 +29,7 @@ public class UsersShownConcertsServiceImpl implements UsersShownConcertsService 
 
     @Override
     public ShownConcertDto saveShownConcert(long telegramId, String concertUrl) throws UserNotFoundException, ShownConcertAlreadyAddedException, InternalErrorException {
-        final Optional<UserEntity> foundUser = usersRepository.findByTelegramId(telegramId);
+        final Optional<UserEntity> foundUser = usersRepository.findById(telegramId);
         if (foundUser.isEmpty()) {
             log.error("can't save shown concert because user with telegram id {} not found", telegramId);
             throw new UserNotFoundException();
@@ -58,7 +58,7 @@ public class UsersShownConcertsServiceImpl implements UsersShownConcertsService 
 
     @Override
     public ShownConcertDto deleteShownConcert(long telegramId, String concertUrl) throws UserNotFoundException, ShownConcertNotFoundException {
-        final Optional<UserEntity> foundUser = usersRepository.findByTelegramId(telegramId);
+        final Optional<UserEntity> foundUser = usersRepository.findById(telegramId);
         if (foundUser.isEmpty()) {
             log.error("can't delete shown concert because user with telegram id {} not found", telegramId);
             throw new UserNotFoundException();
@@ -80,7 +80,7 @@ public class UsersShownConcertsServiceImpl implements UsersShownConcertsService 
 
     @Override
     public List<String> getShownConcerts(long telegramId) throws UserNotFoundException, InternalErrorException {
-        final Optional<UserEntity> foundUser = usersRepository.findByTelegramId(telegramId);
+        final Optional<UserEntity> foundUser = usersRepository.findById(telegramId);
         if (foundUser.isEmpty()) {
             log.error("can't get shown concerts because user with telegram id {} not found", telegramId);
             throw new UserNotFoundException();
@@ -99,7 +99,7 @@ public class UsersShownConcertsServiceImpl implements UsersShownConcertsService 
 
     @Override
     public boolean hasShownConcert(long telegramId, String concertUrl) throws UserNotFoundException, InternalErrorException {
-        final Optional<UserEntity> foundUser = usersRepository.findByTelegramId(telegramId);
+        final Optional<UserEntity> foundUser = usersRepository.findById(telegramId);
         if (foundUser.isEmpty()) {
             log.error("can't check shown concert because user with telegram id {} not found", telegramId);
             throw new UserNotFoundException();
