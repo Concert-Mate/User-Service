@@ -7,4 +7,6 @@ import java.util.Optional;
 
 public interface UsersRepository extends CrudRepository<UserEntity, Long> {
     Optional<UserEntity> findByTelegramId(long telegramId);
+    Optional<UserEntity> findByEmail(String email);
+
 }

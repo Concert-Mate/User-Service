@@ -35,36 +35,34 @@ public class UsersController implements UsersApi {
     private final UsersShownConcertsService shownConcertsService;
     private final CitiesService citiesService;
     private final EmailService emailService;
-    private final AuthService authService;
     private final long ACCESS_TOKEN_EXPIRATION_TIME = 1000000;
     private final long REFRESH_TOKEN_EXPIRATION_TIME = 1000000;
     private String jwtSigningKey = "asdf";
 
     @Override
     public ResponseEntity<DetailResponse> emailLogin(LoginEmailFormModel loginEmailFormModel){
-        var user = usersService.addUser();
         String code = generateCode();
+        var user = usersService.addUser(loginEmailFormModel.getEmail(), code);
         emailService.sendMail(loginEmailFormModel.getEmail(), "Concert Mate code", "Here is your authentication code: " + code);
-        authService.addAuthCode(user.getId(), code, loginEmailFormModel.getEmail());
         return ResponseEntity.ok(new DetailResponse("Email code sended"));
     }
 
     @Override
     public ResponseEntity<TokensResponse> loginWithEmailCode(LoginEmailCodeFormModel loginEmailCodeFormModel){
         Date now = new Date();
-        var auth = authService.findByEmail(loginEmailCodeFormModel.getEmail());
-        if(auth.getCode() != loginEmailCodeFormModel.getCode()){
+        var user = usersService.findByEmail(loginEmailCodeFormModel.getEmail());
+        if(user.getCode() != loginEmailCodeFormModel.getCode()){
 
         }
         SecretKey key = Keys.hmacShaKeyFor(jwtSigningKey.getBytes(StandardCharsets.UTF_8));
         String accessToken = Jwts.builder()
-                .id(String.valueOf(auth.getUserId()))
+                .id(String.valueOf(user.getId()))
                 .issuedAt(now)
                 .expiration(new Date(now.getTime() + ACCESS_TOKEN_EXPIRATION_TIME))
                 .signWith(key)
                 .compact();
         String refreshToken = Jwts.builder()
-                .id(String.valueOf(auth.getUserId()))
+                .id(String.valueOf(user.getId()))
                 .issuedAt(now)
                 .expiration(new Date(now.getTime() + ACCESS_TOKEN_EXPIRATION_TIME))
                 .signWith(key)

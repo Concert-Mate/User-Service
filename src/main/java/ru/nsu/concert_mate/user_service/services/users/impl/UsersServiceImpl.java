@@ -22,8 +22,8 @@ public class UsersServiceImpl implements UsersService {
     private final ModelMapper modelMapper;
 
     @Override
-    public UserDto addUser() {
-        UserEntity userEntity = new UserEntity();
+    public UserDto addUser(String email, String code) {
+        UserEntity userEntity = new UserEntity(email, code);
         UserEntity userEntitySaved = usersRepository.save(userEntity);
         log.info("successfully added user {}", userEntitySaved.getId());
         return modelMapper.map(userEntity, UserDto.class);
@@ -65,5 +65,10 @@ public class UsersServiceImpl implements UsersService {
         }
         log.info("successfully found all users");
         return result;
+    }
+
+    @Override
+    public UserDto findByEmail(String email) {
+        return modelMapper.map(usersRepository.findByEmail(email), UserDto.class);
     }
 }

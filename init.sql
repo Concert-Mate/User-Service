@@ -3,6 +3,8 @@ CREATE SCHEMA IF NOT EXISTS public;
 create table if not exists users
 (
     id          serial constraint users_pk primary key,
+    auth_code text not null,
+    auth_email text not null,
     created_at  timestamp default CURRENT_TIMESTAMP not null
 );
 
@@ -37,18 +39,6 @@ create table if not exists shown_concerts
 );
 
 alter table shown_concerts
-    owner to admin;
-
-create table if not exists users_codes
-(
-    user_id     integer not null constraint users_codes_users_id_fk references users on delete cascade,
-    auth_code text not null,
-    auth_email text not null,
-    created_at  timestamp default CURRENT_TIMESTAMP not null,
-    constraint  users_codes_pk primary key (user_id, created_at)
-);
-
-alter table users_codes
     owner to admin;
 
 create table if not exists users_firebase_tokens

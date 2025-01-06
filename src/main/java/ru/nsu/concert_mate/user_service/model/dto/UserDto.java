@@ -11,6 +11,10 @@ import java.util.Date;
 public class UserDto {
     private long id;
 
+    private String code;
+
+    private String email;
+
     @JsonProperty(value = "creation_datetime")
     private Date creationDatetime;
 }

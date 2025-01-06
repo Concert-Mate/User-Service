@@ -7,11 +7,13 @@ import java.util.List;
 import java.util.Optional;
 
 public interface UsersService {
-    UserDto addUser();
+    UserDto addUser(String email, String code);
 
     UserDto deleteUser(long telegramId) throws UserNotFoundException;
 
     Optional<UserDto> findUser(long telegramId);
 
     List<UserDto> findAllUsers();
+
+    UserDto findByEmail(String email);
 }

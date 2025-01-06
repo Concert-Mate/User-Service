@@ -16,11 +16,19 @@ public class UserEntity {
     @Getter
     private long id;
 
+    @Column(name = "auth_code", nullable = false)
+    private String authCode;
+
+    @Column(name = "auth_email", nullable = false)
+    private String email;
+
     @Column(name = "created_at", nullable = false)
     @Temporal(TemporalType.TIMESTAMP)
     private Date creationDatetime;
 
-    public UserEntity() {
+    public UserEntity(String email, String code) {
+        this.email = email;
+        this.authCode = code;
         this.creationDatetime = new Date();
     }
 }
