@@ -3,7 +3,6 @@ CREATE SCHEMA IF NOT EXISTS public;
 create table if not exists users
 (
     id          serial constraint users_pk primary key,
-    telegram_id bigint                              not null constraint users_pk_2 unique,
     created_at  timestamp default CURRENT_TIMESTAMP not null
 );
 
