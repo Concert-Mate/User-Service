@@ -1,48 +1,59 @@
 package ru.nsu.concert_mate.user_service.api.users;
 
+import jakarta.validation.Valid;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import ru.nsu.concert_mate.user_service.model.dto.*;
 
-@RequestMapping(value = "/users/{telegramId}")
+@RequestMapping(value = "/users")
 public interface UsersApi {
-    @PostMapping
-    AddUserApiResponse addUser(@PathVariable long telegramId);
+    @PostMapping("/login")
+    ResponseEntity<DetailResponse> emailLogin(LoginEmailFormModel loginEmailFormModel);
 
-    @DeleteMapping
-    DefaultUsersApiResponse deleteUser(@PathVariable long telegramId);
+    @PutMapping("/login")
+    ResponseEntity<TokensResponse> loginWithEmailCode(@Valid @RequestBody LoginEmailCodeFormModel loginEmailCodeFormModel);
+
+    @PostMapping("/logout")
+    ResponseEntity<DetailResponse> logout(@RequestHeader("Authorization") String token,
+                          @Valid @RequestBody LogoutBodyModel logoutBodyModel);
+
+    @PostMapping("/refresh")
+    ResponseEntity<DetailResponse> refresh(@Valid @RequestBody RefreshTokenBodyModel refreshTokenBodyModel);
 
     @GetMapping("/cities")
-    UserCitiesResponse getUserCities(@PathVariable long telegramId);
+    ResponseEntity<UserCitiesResponse> getUserCities(@RequestHeader("Authorization") String token);
 
     @PostMapping("/cities")
-    UserCityAddResponse addUserCity(
-            @PathVariable long telegramId,
-            @RequestParam(name = "city", required = false) String cityName,
-            @RequestParam(name = "lat", required = false) Float lat,
-            @RequestParam(name = "lon", required = false) Float lon
+    ResponseEntity<DetailResponse> addUserCity(
+            @RequestHeader("Authorization") String token,
+            @RequestParam(name = "city", required = false) String cityName
     );
 
     @DeleteMapping("/cities")
-    DefaultUsersApiResponse deleteUserCity(
-            @PathVariable long telegramId,
+    ResponseEntity<DetailResponse> deleteUserCity(
+            @RequestHeader("Authorization") String token,
             @RequestParam(name = "city") String cityName
     );
 
-
     @GetMapping("/track-lists")
-    UserTrackListsResponse getUserTrackLists(@PathVariable long telegramId);
+    ResponseEntity<UserTrackListsResponse> getUserTrackLists(@RequestHeader("Authorization") String token);
 
     @PostMapping("/track-lists")
-    UserTrackListResponse addUserTrackList(
-            @PathVariable long telegramId,
+    ResponseEntity<UserTrackListResponse> addUserTrackList(
+            @RequestHeader("Authorization") String token,
             @RequestParam(name = "url") String trackListUrl
     );
 
     @DeleteMapping("/track-lists")
-    UserTrackListResponse deleteUserTrackList(
-            @PathVariable long telegramId,
+    ResponseEntity<DetailResponse> deleteUserTrackList(
+            @RequestHeader("Authorization") String token,
             @RequestParam(name = "url") String trackListUrl
     );
 
     @GetMapping("/concerts")
-    UserConcertsResponse getUserConcerts(@PathVariable long telegramId);
+    ResponseEntity<UserConcertsResponse> getUserConcerts(@RequestHeader("Authorization") String token);
+
+    @PutMapping("/firebase-token")
+    ResponseEntity<DetailResponse> putFirebaseToken(@RequestHeader("Authorization") String token,
+                                    @Valid @RequestBody RefreshFirebaseTokenBodyModel refreshFirebaseTokenBodyModel);
 }

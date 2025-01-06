@@ -22,10 +22,10 @@ public class UsersServiceImpl implements UsersService {
     private final ModelMapper modelMapper;
 
     @Override
-    public UserDto addUser(long telegramId) {
-        UserEntity userEntity = new UserEntity(telegramId);
-        usersRepository.save(userEntity);
-        log.info("successfully added user {}", telegramId);
+    public UserDto addUser() {
+        UserEntity userEntity = new UserEntity();
+        UserEntity userEntitySaved = usersRepository.save(userEntity);
+        log.info("successfully added user {}", userEntitySaved.getId());
         return modelMapper.map(userEntity, UserDto.class);
     }
 

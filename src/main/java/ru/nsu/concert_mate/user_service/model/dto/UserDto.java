@@ -9,8 +9,7 @@ import java.util.Date;
 @Data
 @EqualsAndHashCode
 public class UserDto {
-    @JsonProperty(value = "telegram_id")
-    private long telegramId;
+    private long id;
 
     @JsonProperty(value = "creation_datetime")
     private Date creationDatetime;

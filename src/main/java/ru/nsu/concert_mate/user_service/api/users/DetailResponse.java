@@ -3,10 +3,8 @@ package ru.nsu.concert_mate.user_service.api.users;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
-import java.util.List;
-
 @Data
 @AllArgsConstructor
-public class UserCitiesResponse {
-    private List<String> cities;
+public class DetailResponse {
+    private String detail;
 }

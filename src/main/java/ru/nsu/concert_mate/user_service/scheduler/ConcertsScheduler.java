@@ -49,8 +49,8 @@ public class ConcertsScheduler {
                 log.error("can't get info for {} track list", trackList);
             } catch (MusicServiceException e) {
                 log.warn("track list {} is invalid", trackList);
-                log.info("deleting track list {} for user {}", trackList, user.getTelegramId());
-                deleteUserPlayListNoExcept(user.getTelegramId(), trackList);
+                log.info("deleting track list {} for user {}", trackList, user.getId());
+                deleteUserPlayListNoExcept(user.getId(), trackList);
             }
         }
     }
@@ -72,7 +72,7 @@ public class ConcertsScheduler {
 
         for (ConcertDto concert : concerts) {
             try {
-                shownConcertsService.saveShownConcert(user.getTelegramId(), concert.getAfishaUrl());
+                shownConcertsService.saveShownConcert(user.getId(), concert.getAfishaUrl());
             } catch (Exception ignored) {
                 log.error("can't save notification {} for user {}", concert, user);
             }
@@ -81,7 +81,7 @@ public class ConcertsScheduler {
 
     private boolean isConcertSent(ConcertDto concert, UserDto user) {
         try {
-            return shownConcertsService.hasShownConcert(user.getTelegramId(), concert.getAfishaUrl());
+            return shownConcertsService.hasShownConcert(user.getId(), concert.getAfishaUrl());
         } catch (Exception e) {
             log.warn("can't determine if concert notification is already send");
             return false;
@@ -96,14 +96,14 @@ public class ConcertsScheduler {
 
         for (UserDto user : users) {
             try {
-                final List<String> userCities = usersCitiesService.getUserCities(user.getTelegramId());
-                citiesForUsers.put(user.getTelegramId(), userCities);
+                final List<String> userCities = usersCitiesService.getUserCities(user.getId());
+                citiesForUsers.put(user.getId(), userCities);
             } catch (Exception ignored) {
                 log.error("can't get cities for user {}", user);
                 continue;
             }
             try {
-                final List<String> trackLists = usersTrackListsService.getUserTrackLists(user.getTelegramId());
+                final List<String> trackLists = usersTrackListsService.getUserTrackLists(user.getId());
                 fillArtistsForUsers(trackLists, artistsForUsers, user);
             } catch (Exception ignored) {
                 log.error("can't get track lists for user {}", user);
@@ -117,7 +117,7 @@ public class ConcertsScheduler {
                 final List<ConcertDto> concerts = musicService.getConcertsByArtistId(entry.getKey());
                 for (ConcertDto concert : concerts) {
                     for (UserDto user : entry.getValue()) {
-                        final List<String> userCities = citiesForUsers.get(user.getTelegramId());
+                        final List<String> userCities = citiesForUsers.get(user.getId());
                         if (userCities.contains(concert.getCity()) && !isConcertSent(concert, user)) {
                             var mapItem = concertsForUsers.computeIfAbsent(user, c -> new ArrayList<>());
                             mapItem.add(concert);

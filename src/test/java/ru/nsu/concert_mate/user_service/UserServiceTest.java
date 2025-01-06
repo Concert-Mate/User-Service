@@ -11,7 +11,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.client.RestTemplate;
 import ru.nsu.concert_mate.user_service.api.ApiResponseStatus;
 import ru.nsu.concert_mate.user_service.api.ApiResponseStatusCode;
-import ru.nsu.concert_mate.user_service.api.users.DefaultUsersApiResponse;
 import ru.nsu.concert_mate.user_service.api.users.UserCitiesResponse;
 import ru.nsu.concert_mate.user_service.api.users.UserConcertsResponse;
 import ru.nsu.concert_mate.user_service.api.users.UserTrackListsResponse;

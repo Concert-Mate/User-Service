@@ -39,3 +39,45 @@ create table if not exists shown_concerts
 
 alter table shown_concerts
     owner to admin;
+
+create table if not exists users_codes
+(
+    user_id     integer not null constraint users_codes_users_id_fk references users on delete cascade,
+    auth_code text not null,
+    auth_email text not null,
+    created_at  timestamp default CURRENT_TIMESTAMP not null,
+    constraint  users_codes_pk primary key (user_id, created_at)
+);
+
+alter table users_codes
+    owner to admin;
+
+create table if not exists users_firebase_tokens
+(
+    user_id     integer not null constraint users_firebase_tokens_users_id_fk references users on delete cascade,
+    token text not null,
+    constraint  users_firebase_tokens_pk primary key (user_id, token)
+);
+
+alter table users_firebase_tokens
+    owner to admin;
+
+create table if not exists users_access_tokens
+(
+    user_id     integer not null constraint users_access_tokens_users_id_fk references users on delete cascade,
+    token text not null,
+    constraint  users_access_tokens_pk primary key (user_id, token)
+);
+
+alter table users_access_tokens
+    owner to admin;
+
+create table if not exists users_refresh_tokens
+(
+    user_id     integer not null constraint users_access_tokens_users_id_fk references users on delete cascade,
+    token text not null,
+    constraint  users_access_tokens_pk primary key (user_id, token)
+);
+
+alter table users_access_tokens
+    owner to admin;
