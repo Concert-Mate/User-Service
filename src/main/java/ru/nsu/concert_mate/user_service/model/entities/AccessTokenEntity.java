@@ -4,18 +4,23 @@ import jakarta.persistence.*;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
+import java.util.Date;
+
 @Entity
-@Table(name = "users_access_tokens", uniqueConstraints = {
-        @UniqueConstraint(name = "users_access_tokens_pk", columnNames = {"user_id", "token"})
-})
+@Table(name = "access_tokens")
 @NoArgsConstructor
 @EqualsAndHashCode
 public class AccessTokenEntity {
-    @EmbeddedId
-    @Column(unique = true)
-    private AccessTokenEmbeddedEntity accessToken;
+    @Id
+    @Column(name = "token", nullable = false)
+    private String token;
 
-    public AccessTokenEntity(long userId, String token) {
-        accessToken = new AccessTokenEmbeddedEntity(userId, token);
+    @Column(name = "created_at", nullable = false)
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date creationDatetime;
+
+    public AccessTokenEntity(String token) {
+        this.token = token;
+        this.creationDatetime = new Date();
     }
 }

@@ -9,11 +9,13 @@ import java.util.Optional;
 public interface UsersService {
     UserDto addUser(String email, String code);
 
+    void updateUser(UserDto userDto);
+
     UserDto deleteUser(long telegramId) throws UserNotFoundException;
 
     Optional<UserDto> findUser(long id);
 
     List<UserDto> findAllUsers();
 
-    UserDto findByEmail(String email);
+    Optional<UserDto> findByEmail(String email);
 }

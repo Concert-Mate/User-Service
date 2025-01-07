@@ -11,7 +11,7 @@ import java.util.Base64;
 @AllArgsConstructor
 public class AccessToken {
 
-    private String id;
+    private String sub;
 
     private long exp;
 

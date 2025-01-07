@@ -4,6 +4,5 @@ import lombok.Data;
 
 @Data
 public class RefreshFirebaseTokenBodyModel {
-    private String oldToken;
     private String newToken;
 }

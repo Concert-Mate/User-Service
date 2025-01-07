@@ -7,9 +7,14 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.java.Log;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+import ru.nsu.concert_mate.user_service.api.exception.IncorrectAuthCodeException;
+import ru.nsu.concert_mate.user_service.api.exception.ParseTokenException;
+import ru.nsu.concert_mate.user_service.api.exception.TokenBlacklistedException;
+import ru.nsu.concert_mate.user_service.api.exception.TokenExpiredException;
 import ru.nsu.concert_mate.user_service.api.users.*;
 import ru.nsu.concert_mate.user_service.model.dto.*;
 import ru.nsu.concert_mate.user_service.services.cities.*;
@@ -35,37 +40,50 @@ public class UsersController implements UsersApi {
     private final UsersShownConcertsService shownConcertsService;
     private final CitiesService citiesService;
     private final EmailService emailService;
-    private final long ACCESS_TOKEN_EXPIRATION_TIME = 1000000;
-    private final long REFRESH_TOKEN_EXPIRATION_TIME = 1000000;
-    private String jwtSigningKey = "asdf";
+    private final RefreshTokensService refreshTokensService;
+    private final AccessTokensService accessTokensService;
+    @Value("${spring.auth.access-token-expiration-time}")
+    private final long ACCESS_TOKEN_EXPIRATION_TIME;
+    @Value("${spring.auth.refresh-token-expiration-time}")
+    private final long REFRESH_TOKEN_EXPIRATION_TIME;
+    @Value("${spring.auth.signing-key}")
+    private String jwtSigningKey;
+    SecretKey secretKey = Keys.hmacShaKeyFor(jwtSigningKey.getBytes(StandardCharsets.UTF_8));
 
     @Override
     public ResponseEntity<DetailResponse> emailLogin(LoginEmailFormModel loginEmailFormModel){
         String code = generateCode();
-        var user = usersService.addUser(loginEmailFormModel.getEmail(), code);
-        emailService.sendMail(loginEmailFormModel.getEmail(), "Concert Mate code", "Here is your authentication code: " + code);
+        if(usersService.findByEmail(loginEmailFormModel.getEmail()).isPresent()){
+            var user = usersService.findByEmail(loginEmailFormModel.getEmail()).get();
+            user.setCode(code);
+            usersService.updateUser(user);
+        }
+        else{
+            usersService.addUser(loginEmailFormModel.getEmail(), code);
+        }
+        emailService.sendMail(loginEmailFormModel.getEmail(), "Concert Mate code", "Your authentication code: " + code);
         return ResponseEntity.ok(new DetailResponse("Email code sended"));
     }
 
     @Override
-    public ResponseEntity<TokensResponse> loginWithEmailCode(LoginEmailCodeFormModel loginEmailCodeFormModel){
+    public ResponseEntity<TokensResponse> loginWithEmailCode(LoginEmailCodeFormModel loginEmailCodeFormModel) throws IncorrectAuthCodeException, UserNotFoundException {
         Date now = new Date();
-        var user = usersService.findByEmail(loginEmailCodeFormModel.getEmail());
-        if(user.getCode() != loginEmailCodeFormModel.getCode()){
-
+        if(usersService.findByEmail(loginEmailCodeFormModel.getEmail()).isEmpty()){
+            throw new UserNotFoundException();
         }
-        SecretKey key = Keys.hmacShaKeyFor(jwtSigningKey.getBytes(StandardCharsets.UTF_8));
+        var user = usersService.findByEmail(loginEmailCodeFormModel.getEmail()).get();
+        if(!user.getCode().equals(loginEmailCodeFormModel.getCode())){
+            throw new IncorrectAuthCodeException(user.getCode());
+        }
         String accessToken = Jwts.builder()
-                .id(String.valueOf(user.getId()))
-                .issuedAt(now)
+                .subject(String.valueOf(user.getId()))
                 .expiration(new Date(now.getTime() + ACCESS_TOKEN_EXPIRATION_TIME))
-                .signWith(key)
+                .signWith(secretKey)
                 .compact();
         String refreshToken = Jwts.builder()
-                .id(String.valueOf(user.getId()))
-                .issuedAt(now)
-                .expiration(new Date(now.getTime() + ACCESS_TOKEN_EXPIRATION_TIME))
-                .signWith(key)
+                .subject(String.valueOf(user.getId()))
+                .expiration(new Date(now.getTime() + REFRESH_TOKEN_EXPIRATION_TIME))
+                .signWith(secretKey)
                 .compact();
         TokensResponse tokensResponse = new TokensResponse(accessToken,refreshToken);
         return ResponseEntity.ok(tokensResponse);
@@ -73,211 +91,151 @@ public class UsersController implements UsersApi {
 
 
     @Override
-    public ResponseEntity<DetailResponse> logout(String token, LogoutBodyModel logoutBodyModel) {
+    public ResponseEntity<DetailResponse> logout(String accessToken, LogoutBodyModel logoutBodyModel) throws ParseTokenException, TokenExpiredException, TokenBlacklistedException {
+        verifyAccessToken(accessToken);
+        accessTokensService.blacklistToken(accessToken);
+        refreshTokensService.blacklistToken(logoutBodyModel.getRefreshToken());
         return ResponseEntity.ok(new DetailResponse("sad"));
     }
 
     @Override
-    public ResponseEntity<DetailResponse> refresh(RefreshTokenBodyModel refreshTokenBodyModel) {
-        return null;
+    public ResponseEntity<TokensResponse> refresh(RefreshTokenBodyModel refreshTokenBodyModel) throws TokenExpiredException, ParseTokenException, TokenBlacklistedException {
+        verifyRefreshToken(refreshTokenBodyModel.refreshToken);
+        refreshTokensService.blacklistToken(refreshTokenBodyModel.refreshToken);
+        String userId = RefreshToken.parseFromString(refreshTokenBodyModel.refreshToken).getSub();
+        Date now = new Date();
+        String accessToken = Jwts.builder()
+                .subject(String.valueOf(userId))
+                .expiration(new Date(now.getTime() + ACCESS_TOKEN_EXPIRATION_TIME))
+                .signWith(secretKey)
+                .compact();
+        String refreshToken = Jwts.builder()
+                .subject(String.valueOf(userId))
+                .expiration(new Date(now.getTime() + REFRESH_TOKEN_EXPIRATION_TIME))
+                .signWith(secretKey)
+                .compact();
+        TokensResponse tokensResponse = new TokensResponse(accessToken,refreshToken);
+        return ResponseEntity.ok(tokensResponse);
     }
 
     @Override
-    public ResponseEntity<UserCitiesResponse> getUserCities(String token) {
-//        try {
-//            return ResponseEntity.ok(new UserCitiesResponse(usersCitiesService.getUserCities(telegramId)));
-//        } catch (UserNotFoundException ignored) {
-//            return null;
-//        } catch (Exception ignored) {
-//            return null;
-//        }
-        return null;
+    public ResponseEntity<UserCitiesResponse> getUserCities(String accessToken) throws TokenExpiredException, ParseTokenException, TokenBlacklistedException, UserNotFoundException, InternalErrorException {
+        verifyAccessToken(accessToken);
+        long userId = Long.parseLong(AccessToken.parseFromString(accessToken).getSub());
+        return ResponseEntity.ok(new UserCitiesResponse(usersCitiesService.getUserCities(userId)));
     }
 
     @Override
-    public ResponseEntity<DetailResponse> addUserCity(String token, String cityName) {
-//        String cityToAdd;
-//        if (cityName == null && (lat == null || lon == null)) {
-//            return new UserCityAddResponse(ApiResponseStatusCode.INVALID_COORDS);
-//        }
-//        if (cityName != null) {
-//            try {
-//                var res = citiesService.findCity(cityName);
-//                if (res.getCode() == CitySearchByNameCode.SUCCESS) {
-//                    cityToAdd = res.getOptions().get(0).getName();
-//                } else if (res.getCode() == CitySearchByNameCode.FUZZY) {
-//                    return new UserCityAddResponse(ApiResponseStatusCode.FUZZY_CITY, res.getOptions().get(0).getName());
-//                } else if (res.getCode() == CitySearchByNameCode.NOT_FOUND) {
-//                    return new UserCityAddResponse(ApiResponseStatusCode.INVALID_CITY);
-//                } else {
-//                    return new UserCityAddResponse(ApiResponseStatusCode.INTERNAL_ERROR);
-//                }
-//            } catch (CitiesServiceException exception) {
-//                return new UserCityAddResponse(ApiResponseStatusCode.INTERNAL_ERROR);
-//            }
-//        } else {
-//            try {
-//                CitySearchByCoordsResult res = citiesService.findCity(new CoordsDto(lat, lon));
-//                if (res.getCode() == CitySearchByCoordsCode.SUCCESS) {
-//                    var city = res.getOptions().stream().max(Comparator.comparingInt(CityDto::getPopulation));
-//                    if (city.isEmpty()) {
-//                        return new UserCityAddResponse(ApiResponseStatusCode.INVALID_CITY);
-//                    }
-//                    cityToAdd = city.get().getName();
-//                } else if (res.getCode() == CitySearchByCoordsCode.NOT_FOUND) {
-//                    return new UserCityAddResponse(ApiResponseStatusCode.INVALID_CITY);
-//                } else if (res.getCode() == CitySearchByCoordsCode.INVALID_COORDS) {
-//                    return new UserCityAddResponse(ApiResponseStatusCode.INVALID_COORDS);
-//                } else {
-//                    return new UserCityAddResponse(ApiResponseStatusCode.INTERNAL_ERROR);
-//                }
-//            } catch (CitiesServiceException e) {
-//                return new UserCityAddResponse(ApiResponseStatusCode.INTERNAL_ERROR);
-//            }
-//        }
-//
-//        try {
-//            usersCitiesService.saveUserCity(telegramId, cityToAdd);
-//            return new UserCityAddResponse(cityToAdd);
-//        } catch (UserNotFoundException ignored) {
-//            return new UserCityAddResponse(ApiResponseStatusCode.USER_NOT_FOUND);
-//        } catch (CityAlreadyAddedException ignored) {
-//            return new UserCityAddResponse(ApiResponseStatusCode.CITY_ALREADY_ADDED);
-//        } catch (Exception ignored) {
-//            return new UserCityAddResponse(ApiResponseStatusCode.INTERNAL_ERROR);
-//        }
-        return null;
+    public ResponseEntity<DetailResponse> addUserCity(String accessToken, String cityName) throws TokenExpiredException, ParseTokenException, TokenBlacklistedException, CitiesServiceException, InternalErrorException, CityNotFoundException, UserNotFoundException, CityAlreadyAddedException {
+        verifyAccessToken(accessToken);
+        String cityToAdd;
+        var res = citiesService.findCity(cityName);
+        if(res.getCode() == CitySearchByNameCode.FUZZY){
+            return ResponseEntity.ok(new DetailResponse(res.getOptions().get(0).getName()));
+        }
+        if (res.getCode() == CitySearchByNameCode.NOT_FOUND) {
+            throw new CityNotFoundException();
+        }
+        if (res.getCode() == CitySearchByNameCode.SUCCESS) {
+            cityToAdd = res.getOptions().get(0).getName();
+        }
+        else {
+            throw new InternalErrorException();
+        }
+        usersCitiesService.saveUserCity(Long.parseLong(AccessToken.parseFromString(accessToken).getSub()), cityToAdd);
+        return ResponseEntity.ok(new DetailResponse("City successfully added"));
     }
 
     @Override
-    public ResponseEntity<DetailResponse>  deleteUserCity(String token, String cityName) {
-//        try {
-//            usersCitiesService.deleteUserCity(telegramId, cityName);
-//            return new DefaultUsersApiResponse();
-//        } catch (UserNotFoundException ignored) {
-//            return new DefaultUsersApiResponse(ApiResponseStatusCode.USER_NOT_FOUND);
-//        } catch (CityNotAddedException ignored) {
-//            return new DefaultUsersApiResponse(ApiResponseStatusCode.CITY_NOT_ADDED);
-//        } catch (Exception ignored) {
-//            return new DefaultUsersApiResponse(ApiResponseStatusCode.INTERNAL_ERROR);
-//        }
-        return null;
+    public ResponseEntity<DetailResponse>  deleteUserCity(String accessToken, String cityName) throws TokenExpiredException, ParseTokenException, TokenBlacklistedException, UserNotFoundException, CityNotAddedException {
+        verifyAccessToken(accessToken);
+        usersCitiesService.deleteUserCity(Long.parseLong(AccessToken.parseFromString(accessToken).getSub()), cityName);
+        return ResponseEntity.ok(new DetailResponse("City successfully deleted"));
     }
 
     @Override
-    public ResponseEntity<UserTrackListsResponse> getUserTrackLists(String token) {
-//        try {
-//            final List<String> trackLists = usersTrackListsService.getUserTrackLists(telegramId);
-//            final List<TrackListHeaderDto> result = new ArrayList<>();
-//            for (String trackList : trackLists) {
-//                try {
-//                    TrackListDto trackListDto = musicService.getTrackListData(trackList);
-//                    result.add(new TrackListHeaderDto(trackListDto.getUrl(), trackListDto.getTitle()));
-//                } catch (MusicServiceException e) {
-//                    usersTrackListsService.deleteUserTrackList(telegramId, trackList);
-//                } catch (InternalErrorException ignored) {
-//                }
-//            }
-//            return new UserTrackListsResponse(result);
-//        } catch (UserNotFoundException ignored) {
-//            return new UserTrackListsResponse(ApiResponseStatusCode.USER_NOT_FOUND);
-//        } catch (Exception ignored) {
-//            return new UserTrackListsResponse(ApiResponseStatusCode.INTERNAL_ERROR);
-//        }
-        return null;
+    public ResponseEntity<UserTrackListsResponse> getUserTrackLists(String accessToken) throws TokenExpiredException, ParseTokenException, TokenBlacklistedException, UserNotFoundException, InternalErrorException, TrackListNotAddedException {
+        verifyAccessToken(accessToken);
+        final List<String> trackLists = usersTrackListsService.getUserTrackLists(Long.parseLong(AccessToken.parseFromString(accessToken).getSub()));
+        final List<TrackListHeaderDto> result = new ArrayList<>();
+        for (String trackList : trackLists) {
+            try {
+                TrackListDto trackListDto = musicService.getTrackListData(trackList);
+                result.add(new TrackListHeaderDto(trackListDto.getUrl(), trackListDto.getTitle()));
+            } catch (MusicServiceException e) {
+                usersTrackListsService.deleteUserTrackList(Long.parseLong(AccessToken.parseFromString(accessToken).getSub()), trackList);
+            } catch (InternalErrorException ignored) {
+            }
+        }
+        return ResponseEntity.ok(new UserTrackListsResponse(result));
     }
 
     @Override
-    public ResponseEntity<UserTrackListResponse> addUserTrackList(String token, String trackListUrl) {
-//        try {
-//            final TrackListDto res = musicService.getTrackListData(trackListUrl);
-//            usersTrackListsService.saveUserTrackList(telegramId, trackListUrl);
-//            return new UserTrackListResponse(new TrackListHeaderDto(res.getUrl(), res.getTitle()));
-//        } catch (UserNotFoundException ignored) {
-//            return new UserTrackListResponse(ApiResponseStatusCode.USER_NOT_FOUND);
-//        } catch (TrackListAlreadyAddedException ignored) {
-//            return new UserTrackListResponse(ApiResponseStatusCode.TRACK_LIST_ALREADY_ADDED);
-//        } catch (MusicServiceException ignored) {
-//            return new UserTrackListResponse(ApiResponseStatusCode.INVALID_TRACK_LIST);
-//        } catch (Exception ignored) {
-//            return new UserTrackListResponse(ApiResponseStatusCode.INTERNAL_ERROR);
-//        }
-        return null;
+    public ResponseEntity<UserTrackListResponse> addUserTrackList(String accessToken, String trackListUrl) throws TokenExpiredException, ParseTokenException, TokenBlacklistedException, MusicServiceException, InternalErrorException, UserNotFoundException, TrackListAlreadyAddedException {
+        verifyAccessToken(accessToken);
+        final TrackListDto res = musicService.getTrackListData(trackListUrl);
+        usersTrackListsService.saveUserTrackList(Long.parseLong(AccessToken.parseFromString(accessToken).getSub()), trackListUrl);
+        return ResponseEntity.ok(new UserTrackListResponse(new TrackListHeaderDto(res.getUrl(), res.getTitle())));
     }
 
     @Override
-    public ResponseEntity<DetailResponse> deleteUserTrackList(String token, String trackListUrl) {
-//        try {
-//            usersTrackListsService.deleteUserTrackList(telegramId, trackListUrl);
-//            final TrackListDto trackListData = musicService.getTrackListData(trackListUrl);
-//            return new UserTrackListResponse(new TrackListHeaderDto(trackListData.getUrl(), trackListData.getTitle()));
-//        } catch (UserNotFoundException ignored) {
-//            return new UserTrackListResponse(ApiResponseStatusCode.USER_NOT_FOUND);
-//        } catch (TrackListNotAddedException ignored) {
-//            return new UserTrackListResponse(ApiResponseStatusCode.TRACK_LIST_NOT_ADDED);
-//        } catch (MusicServiceException ignored) {
-//            return new UserTrackListResponse();
-//        } catch (Exception ignored) {
-//            return new UserTrackListResponse(ApiResponseStatusCode.INTERNAL_ERROR);
-//        }
-        return null;
+    public ResponseEntity<DetailResponse> deleteUserTrackList(String accessToken, String trackListUrl) throws ParseTokenException, UserNotFoundException, TrackListNotAddedException, MusicServiceException, InternalErrorException, TokenExpiredException, TokenBlacklistedException {
+        verifyAccessToken(accessToken);
+        usersTrackListsService.deleteUserTrackList(Long.parseLong(AccessToken.parseFromString(accessToken).getSub()), trackListUrl);
+        return ResponseEntity.ok(new DetailResponse("Track succsessfully deleted"));
     }
 
     @Override
-    public ResponseEntity<UserConcertsResponse> getUserConcerts(String token) {
-//        final Optional<UserDto> optionalUser = usersService.findUser(telegramId);
-//        if (optionalUser.isEmpty()) {
-//            return new UserConcertsResponse(ApiResponseStatusCode.USER_NOT_FOUND);
-//        }
-//        try {
-//            List<String> userCities = usersCitiesService.getUserCities(optionalUser.get().getTelegramId());
-//            if (userCities.isEmpty()) {
-//                return new UserConcertsResponse();
-//            }
-//            List<String> userTrackLists = usersTrackListsService.getUserTrackLists(telegramId);
-//            if (userTrackLists.isEmpty()) {
-//                return new UserConcertsResponse();
-//            }
-//            HashSet<Integer> userArtists = new HashSet<>();
-//
-//
-//            for (String trackList : userTrackLists) {
-//                try {
-//                    List<ArtistDto> artistDtoList = musicService.getTrackListData(trackList).getArtists();
-//                    for (ArtistDto artist : artistDtoList) {
-//                        userArtists.add(artist.getYandexMusicId());
-//                    }
-//                } catch (MusicServiceException e) {
-//                    usersTrackListsService.deleteUserTrackList(telegramId, trackList);
-//                }
-//            }
-//
-//            HashSet<String> userCitiesSet = new HashSet<>(userCities);
-//            List<ConcertDto> ret = new ArrayList<>();
-//            for (int artistId : userArtists) {
-//                try {
-//                    List<ConcertDto> artistConcerts = musicService.getConcertsByArtistId(artistId);
-//                    for (ConcertDto concert : artistConcerts) {
-//                        if (userCitiesSet.contains(concert.getCity())) {
-//                            ret.add(concert);
-//                            saveShownConcertNoException(telegramId, concert.getAfishaUrl());
-//                        }
-//                    }
-//                }
-//                catch (MusicServiceException e) {
-//                    log.warning(e.getMessage());
-//                }
-//            }
-//
-//            return new UserConcertsResponse(ret);
-//        } catch (Exception ignored) {
-//            return new UserConcertsResponse(ApiResponseStatusCode.INTERNAL_ERROR);
-//        }
-        return null;
+    public ResponseEntity<UserConcertsResponse> getUserConcerts(String accessToken) throws TokenExpiredException, ParseTokenException, TokenBlacklistedException, UserNotFoundException, InternalErrorException, TrackListNotAddedException {
+        verifyAccessToken(accessToken);
+        long userId = Long.parseLong(AccessToken.parseFromString(accessToken).getSub());
+        final Optional<UserDto> optionalUser = usersService.findUser(userId);
+        if (optionalUser.isEmpty()) {
+            throw new UserNotFoundException();
+        }
+        List<String> userCities = usersCitiesService.getUserCities(optionalUser.get().getId());
+        if (userCities.isEmpty()) {
+            return ResponseEntity.ok(new UserConcertsResponse(new ArrayList<>()));
+        }
+        List<String> userTrackLists = usersTrackListsService.getUserTrackLists(userId);
+        if (userTrackLists.isEmpty()) {
+            return ResponseEntity.ok(new UserConcertsResponse(new ArrayList<>()));
+        }
+        HashSet<Integer> userArtists = new HashSet<>();
+
+        for (String trackList : userTrackLists) {
+            try {
+                List<ArtistDto> artistDtoList = musicService.getTrackListData(trackList).getArtists();
+                for (ArtistDto artist : artistDtoList) {
+                    userArtists.add(artist.getYandexMusicId());
+                }
+            } catch (MusicServiceException e) {
+                usersTrackListsService.deleteUserTrackList(userId, trackList);
+            }
+        }
+
+        HashSet<String> userCitiesSet = new HashSet<>(userCities);
+        List<ConcertDto> ret = new ArrayList<>();
+        for (int artistId : userArtists) {
+            try {
+                List<ConcertDto> artistConcerts = musicService.getConcertsByArtistId(artistId);
+                for (ConcertDto concert : artistConcerts) {
+                    if (userCitiesSet.contains(concert.getCity())) {
+                        ret.add(concert);
+                        saveShownConcertNoException(userId, concert.getAfishaUrl());
+                    }
+                }
+            }
+            catch (MusicServiceException e) {
+                log.warning(e.getMessage());
+            }
+        }
+
+        return ResponseEntity.ok(new UserConcertsResponse(ret));
     }
 
     @Override
-    public ResponseEntity<DetailResponse> putFirebaseToken(String token, RefreshFirebaseTokenBodyModel refreshFirebaseTokenBodyModel) {
+    public ResponseEntity<DetailResponse> putFirebaseToken(String accessToken, RefreshFirebaseTokenBodyModel refreshFirebaseTokenBodyModel) {
         return null;
     }
 
@@ -290,5 +248,27 @@ public class UsersController implements UsersApi {
 
     private String generateCode(){
         return (new Date().getTime() % 1000) + RandomStringUtils.randomAlphabetic(3);
+    }
+
+    private void verifyAccessToken(String token) throws ParseTokenException, TokenExpiredException, TokenBlacklistedException {
+        Jwts.parser().verifyWith(secretKey).build().isSigned(token);
+        AccessToken accessToken = AccessToken.parseFromString(token);
+        if(accessToken.getExp() < new Date().getTime()){
+            throw new TokenExpiredException(token);
+        }
+        if(accessTokensService.isTokenBlacklisted(token)){
+            throw new TokenBlacklistedException(token);
+        }
+    }
+
+    private void verifyRefreshToken(String token) throws ParseTokenException, TokenExpiredException, TokenBlacklistedException {
+        Jwts.parser().verifyWith(secretKey).build().isSigned(token);
+        RefreshToken refreshToken = RefreshToken.parseFromString(token);
+        if(refreshToken.getExp() < new Date().getTime()){
+            throw new TokenExpiredException(token);
+        }
+        if(refreshTokensService.isTokenBlacklisted(token)){
+            throw new TokenBlacklistedException(token);
+        }
     }
 }

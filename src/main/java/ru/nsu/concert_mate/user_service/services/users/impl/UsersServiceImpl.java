@@ -30,6 +30,13 @@ public class UsersServiceImpl implements UsersService {
     }
 
     @Override
+    public void updateUser(UserDto userDto) {
+        UserEntity userEntity = modelMapper.map(userDto, UserEntity.class);
+        UserEntity userEntitySaved = usersRepository.save(userEntity);
+        log.info("successfully updated user {}", userEntitySaved.getId());
+    }
+
+    @Override
     public UserDto deleteUser(long telegramId) throws UserNotFoundException {
         final Optional<UserEntity> optionalUser = usersRepository.findById(telegramId);
 
@@ -68,7 +75,14 @@ public class UsersServiceImpl implements UsersService {
     }
 
     @Override
-    public UserDto findByEmail(String email) {
-        return modelMapper.map(usersRepository.findByEmail(email), UserDto.class);
+    public Optional<UserDto> findByEmail(String email) {
+        final Optional<UserEntity> optionalUserEntity = usersRepository.findByEmail(email);
+        if (optionalUserEntity.isPresent()) {
+            log.info("successfully found user with email: {}", email);
+            return Optional.ofNullable(modelMapper.map(optionalUserEntity.get(), UserDto.class));
+        } else {
+            log.error("can't find user with email: {}", email);
+            return Optional.empty();
+        }
     }
 }

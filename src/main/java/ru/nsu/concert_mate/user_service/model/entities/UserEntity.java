@@ -19,7 +19,7 @@ public class UserEntity {
     @Column(name = "auth_code", nullable = false)
     private String authCode;
 
-    @Column(name = "email", nullable = false)
+    @Column(name = "email", unique = true, nullable = false)
     private String email;
 
     @Column(name = "created_at", nullable = false)

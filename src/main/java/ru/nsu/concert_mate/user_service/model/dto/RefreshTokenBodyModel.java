@@ -5,4 +5,5 @@ import lombok.Data;
 @Data
 public class RefreshTokenBodyModel {
     public String refreshToken;
+    private String firebaseToken;
 }

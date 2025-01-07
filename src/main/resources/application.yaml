@@ -20,6 +20,10 @@ spring:
     scheme: ${MUSIC_SERVICE_SCHEME}
   scheduler:
     fixed_rate: ${SCHEDULER_FIXED_RATE}
+  auth:
+    access-token-expiration-time: 1800000
+    refresh-token-expiration-time: 345600000
+    signing-key: 'asdfasdsfsdffadsffzxckjgfjlkgfmlkgfjlkzxvkxjuijlkmnvjcddjerwewqqd'
 grpc:
   client:
     elastic-service:

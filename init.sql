@@ -51,22 +51,22 @@ create table if not exists users_firebase_tokens
 alter table users_firebase_tokens
     owner to admin;
 
-create table if not exists users_access_tokens
+create table if not exists access_tokens
 (
-    user_id     integer not null constraint users_access_tokens_users_id_fk references users on delete cascade,
     token text not null,
-    constraint  users_access_tokens_pk primary key (user_id, token)
+    created_at  timestamp default CURRENT_TIMESTAMP not null,
+    constraint  users_access_tokens_pk primary key (token)
 );
 
-alter table users_access_tokens
+alter table access_tokens
     owner to admin;
 
-create table if not exists users_refresh_tokens
+create table if not exists refresh_tokens
 (
-    user_id     integer not null constraint users_refresh_tokens_users_id_fk references users on delete cascade,
     token text not null,
-    constraint  users_refresh_tokens_pk primary key (user_id, token)
+    created_at  timestamp default CURRENT_TIMESTAMP not null,
+    constraint  users_refresh_tokens_pk primary key (token)
 );
 
-alter table users_refresh_tokens
+alter table refresh_tokens
     owner to admin;
