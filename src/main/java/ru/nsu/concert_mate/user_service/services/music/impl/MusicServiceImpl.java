@@ -134,7 +134,7 @@ public class MusicServiceImpl implements MusicService {
             }
 
             if (Objects.requireNonNull(res.getBody()).status.code == ErrorCodes.SUCCESS.ordinal()) {
-                log.info("service successfully answered {}",Objects.requireNonNull(res.getBody()).concerts);
+                log.info("service successfully answered {}", Objects.requireNonNull(res.getBody()).concerts);
                 return Objects.requireNonNull(res.getBody()).concerts;
             } else if (Objects.requireNonNull(res.getBody()).status.code == ErrorCodes.ARTIST_NOT_FOUND.ordinal()) {
                 log.info("artist concerts not found for {}", artistId);

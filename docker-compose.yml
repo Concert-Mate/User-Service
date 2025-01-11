@@ -26,6 +26,6 @@ services:
     volumes:
       - ./rabbitmq-data:/var/lib/rabbitmq
     healthcheck:
-      test: ["CMD", "rabbitmqctl", "status"]
+      test: [ "CMD", "rabbitmqctl", "status" ]
       interval: 10s
       retries: 10

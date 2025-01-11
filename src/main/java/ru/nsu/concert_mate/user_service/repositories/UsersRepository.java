@@ -10,6 +10,7 @@ public interface UsersRepository extends CrudRepository<UserEntity, Long> {
     @Query(value = "SELECT * FROM public.users WHERE id = :id",
             nativeQuery = true)
     Optional<UserEntity> findById(long id);
+
     @Query(value = "SELECT * FROM public.users WHERE email = :email",
             nativeQuery = true)
     Optional<UserEntity> findByEmail(String email);

@@ -6,8 +6,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import ru.nsu.concert_mate.user_service.model.dto.TrackListHeaderDto;
 
-import java.util.List;
-
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

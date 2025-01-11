@@ -19,7 +19,6 @@ import ru.nsu.concert_mate.user_service.services.users.UsersShownConcertsService
 import ru.nsu.concert_mate.user_service.services.users.UsersTrackListsService;
 import ru.nsu.concert_mate.user_service.services.users.exceptions.InternalErrorException;
 
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -54,6 +53,7 @@ public class ConcertsScheduler {
             }
         }
     }
+
     //this method is used only to delete invalid track lists
     private void deleteUserPlayListNoExcept(long telegramId, String playListUrl) {
         try {
@@ -125,7 +125,7 @@ public class ConcertsScheduler {
                     }
                 }
             } catch (Exception ignored) {
-               log.error("can't get concerts for artist with id {}", entry.getKey());
+                log.error("can't get concerts for artist with id {}", entry.getKey());
             }
         }
 
