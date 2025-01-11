@@ -16,7 +16,7 @@ import ru.nsu.concert_mate.user_service.services.users.exceptions.*;
 @RequestMapping(value = "/users")
 public interface UsersApi {
     @PostMapping("/login")
-    ResponseEntity<DetailResponse> emailLogin(LoginEmailFormModel loginEmailFormModel);
+    ResponseEntity<DetailResponse> emailLogin(@Valid @RequestBody LoginEmailFormModel loginEmailFormModel);
 
     @PutMapping("/login")
     ResponseEntity<TokensResponse> loginWithEmailCode(@Valid @RequestBody LoginEmailCodeFormModel loginEmailCodeFormModel) throws IncorrectAuthCodeException, UserNotFoundException;

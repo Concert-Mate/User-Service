@@ -24,6 +24,17 @@ spring:
     access-token-expiration-time: 1800000
     refresh-token-expiration-time: 345600000
     signing-key: 'asdfasdsfsdffadsffzxckjgfjlkgfmlkgfjlkzxvkxjuijlkmnvjcddjerwewqqd'
+  mail:
+    host: smtp.mail.ru
+    port: 465
+    username: ${EMAIL_USERNAME}
+    password: ${EMAIL_PASSWORD}
+    protocol: smtp
+    properties:
+      mail.smtp.ssl.enable: true
+      mail.smtp.auth: true
+      #mail.smtp.starttls.enable: true
+      #mail.transport.protocol: smtp
 grpc:
   client:
     elastic-service:

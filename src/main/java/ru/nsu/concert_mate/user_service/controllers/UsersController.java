@@ -43,12 +43,12 @@ public class UsersController implements UsersApi {
     private final RefreshTokensService refreshTokensService;
     private final AccessTokensService accessTokensService;
     @Value("${spring.auth.access-token-expiration-time}")
-    private final long ACCESS_TOKEN_EXPIRATION_TIME;
+    private long ACCESS_TOKEN_EXPIRATION_TIME;
     @Value("${spring.auth.refresh-token-expiration-time}")
-    private final long REFRESH_TOKEN_EXPIRATION_TIME;
+    private long REFRESH_TOKEN_EXPIRATION_TIME;
     @Value("${spring.auth.signing-key}")
     private String jwtSigningKey;
-    SecretKey secretKey = Keys.hmacShaKeyFor(jwtSigningKey.getBytes(StandardCharsets.UTF_8));
+
 
     @Override
     public ResponseEntity<DetailResponse> emailLogin(LoginEmailFormModel loginEmailFormModel){
@@ -75,6 +75,7 @@ public class UsersController implements UsersApi {
         if(!user.getCode().equals(loginEmailCodeFormModel.getCode())){
             throw new IncorrectAuthCodeException(user.getCode());
         }
+        SecretKey secretKey = Keys.hmacShaKeyFor(jwtSigningKey.getBytes(StandardCharsets.UTF_8));
         String accessToken = Jwts.builder()
                 .subject(String.valueOf(user.getId()))
                 .expiration(new Date(now.getTime() + ACCESS_TOKEN_EXPIRATION_TIME))
@@ -104,6 +105,7 @@ public class UsersController implements UsersApi {
         refreshTokensService.blacklistToken(refreshTokenBodyModel.refreshToken);
         String userId = RefreshToken.parseFromString(refreshTokenBodyModel.refreshToken).getSub();
         Date now = new Date();
+        SecretKey secretKey = Keys.hmacShaKeyFor(jwtSigningKey.getBytes(StandardCharsets.UTF_8));
         String accessToken = Jwts.builder()
                 .subject(String.valueOf(userId))
                 .expiration(new Date(now.getTime() + ACCESS_TOKEN_EXPIRATION_TIME))
@@ -251,6 +253,7 @@ public class UsersController implements UsersApi {
     }
 
     private void verifyAccessToken(String token) throws ParseTokenException, TokenExpiredException, TokenBlacklistedException {
+        SecretKey secretKey = Keys.hmacShaKeyFor(jwtSigningKey.getBytes(StandardCharsets.UTF_8));
         Jwts.parser().verifyWith(secretKey).build().isSigned(token);
         AccessToken accessToken = AccessToken.parseFromString(token);
         if(accessToken.getExp() < new Date().getTime()){
@@ -262,6 +265,7 @@ public class UsersController implements UsersApi {
     }
 
     private void verifyRefreshToken(String token) throws ParseTokenException, TokenExpiredException, TokenBlacklistedException {
+        SecretKey secretKey = Keys.hmacShaKeyFor(jwtSigningKey.getBytes(StandardCharsets.UTF_8));
         Jwts.parser().verifyWith(secretKey).build().isSigned(token);
         RefreshToken refreshToken = RefreshToken.parseFromString(token);
         if(refreshToken.getExp() < new Date().getTime()){
