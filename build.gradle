@@ -22,6 +22,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-validation:3.0.8'
     implementation "me.paulschwarz:spring-dotenv:4.0.0"
     implementation 'org.springframework.boot:spring-boot-starter-mail'
+
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.projectlombok:lombok'
     implementation "org.springframework.boot:spring-boot-starter-data-jpa"
@@ -29,6 +30,7 @@ dependencies {
     implementation group: 'org.springdoc', name: 'springdoc-openapi-starter-webmvc-ui', version: '2.5.0'
     implementation 'org.modelmapper:modelmapper:3.1.0'
     testImplementation group: 'com.h2database', name: 'h2', version: '2.2.224'
+    implementation group: 'com.google.firebase', name: 'firebase-admin', version: '9.1.1'
     implementation group: 'com.google.code.gson', name: 'gson', version: '2.11.0'
     implementation group: 'org.springframework.amqp', name: 'spring-rabbit', version: '3.1.4'
     implementation group: 'com.google.protobuf', name: 'protobuf-java', version: '3.21.7'
