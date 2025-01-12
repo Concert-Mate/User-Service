@@ -2,6 +2,8 @@ server:
   address: ${USER_SERVICE_ADDRESS}
   port: ${USER_SERVICE_PORT}
 spring:
+  firebase:
+    config: ${FIREBASE_CONFIG_FILE}
   application:
     name: 'User-Service'
   datasource:
