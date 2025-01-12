@@ -1,5 +1,6 @@
 package ru.nsu.concert_mate.user_service.scheduler;
 
+import com.google.firebase.messaging.FirebaseMessagingException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Configuration;
@@ -8,16 +9,16 @@ import org.springframework.scheduling.annotation.Scheduled;
 import ru.nsu.concert_mate.user_service.model.dto.ArtistDto;
 import ru.nsu.concert_mate.user_service.model.dto.ConcertDto;
 import ru.nsu.concert_mate.user_service.model.dto.UserDto;
+import ru.nsu.concert_mate.user_service.model.entities.FirebaseTokenEntity;
 import ru.nsu.concert_mate.user_service.services.broker.BrokerEvent;
 import ru.nsu.concert_mate.user_service.services.broker.BrokerException;
 import ru.nsu.concert_mate.user_service.services.broker.BrokerService;
+import ru.nsu.concert_mate.user_service.services.firebase.FirebaseMessagingService;
 import ru.nsu.concert_mate.user_service.services.music.MusicService;
 import ru.nsu.concert_mate.user_service.services.music.exceptions.MusicServiceException;
-import ru.nsu.concert_mate.user_service.services.users.UsersCitiesService;
-import ru.nsu.concert_mate.user_service.services.users.UsersService;
-import ru.nsu.concert_mate.user_service.services.users.UsersShownConcertsService;
-import ru.nsu.concert_mate.user_service.services.users.UsersTrackListsService;
+import ru.nsu.concert_mate.user_service.services.users.*;
 import ru.nsu.concert_mate.user_service.services.users.exceptions.InternalErrorException;
+import ru.nsu.concert_mate.user_service.services.users.exceptions.UserNotFoundException;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -34,7 +35,8 @@ public class ConcertsScheduler {
     private final UsersTrackListsService usersTrackListsService;
     private final MusicService musicService;
     private final UsersShownConcertsService shownConcertsService;
-    private final BrokerService brokerService;
+    private final FirebaseMessagingService firebaseMessagingService;
+    private final FirebaseService firebaseService;
 
     private void fillArtistsForUsers(List<String> trackLists, Map<Integer, List<UserDto>> artistsForUsers, UserDto user) {
         for (String trackList : trackLists) {
@@ -63,12 +65,10 @@ public class ConcertsScheduler {
         }
     }
 
-    private void sendConcertToUser(List<ConcertDto> concerts, UserDto user) {
-        try {
-            brokerService.sendEvent(new BrokerEvent(user, concerts));
-        } catch (BrokerException ignored) {
-            log.error("can't send notification {} to user {}", concerts, user);
-        }
+    private void sendConcertToUser(List<ConcertDto> concerts, UserDto user) throws UserNotFoundException, FirebaseMessagingException {
+
+        FirebaseTokenEntity firebaseTokenEntity = firebaseService.getToken(user.getId());
+        firebaseMessagingService.sendNotification(firebaseTokenEntity.getToken(), "уведомление", concerts.toString());
 
         for (ConcertDto concert : concerts) {
             try {
@@ -89,7 +89,7 @@ public class ConcertsScheduler {
     }
 
     @Scheduled(fixedRateString = "${spring.scheduler.fixed_rate}")
-    public void updateConcerts() {
+    public void updateConcerts() throws UserNotFoundException, FirebaseMessagingException {
         final List<UserDto> users = usersService.findAllUsers();
         final Map<Integer, List<UserDto>> artistsForUsers = new HashMap<>();
         final Map<Long, List<String>> citiesForUsers = new HashMap<>();

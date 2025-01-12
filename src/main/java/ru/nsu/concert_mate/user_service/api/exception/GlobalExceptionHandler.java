@@ -77,4 +77,11 @@ public class GlobalExceptionHandler {
         DetailResponse detailResponse = new DetailResponse(ex.getMessage());
         return new ResponseEntity<>(detailResponse, HttpStatus.UNPROCESSABLE_ENTITY);
     }
+
+    @ExceptionHandler(value = {TokenNotFoundException.class})
+    public ResponseEntity<DetailResponse> tokenNotFoundException(Exception ex, WebRequest request) {
+        log.warn("404 error, token not found: {}", ex.getMessage());
+        DetailResponse detailResponse = new DetailResponse(ex.getMessage());
+        return new ResponseEntity<>(detailResponse, HttpStatus.NOT_FOUND);
+    }
 }

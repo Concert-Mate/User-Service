@@ -23,7 +23,7 @@ public interface UsersApi {
 
     @PostMapping("/logout")
     ResponseEntity<DetailResponse> logout(@RequestHeader("Authorization") String accessToken,
-                                          @Valid @RequestBody LogoutBodyModel logoutBodyModel) throws ParseTokenException, TokenExpiredException, TokenBlacklistedException;
+                                          @Valid @RequestBody LogoutBodyModel logoutBodyModel) throws ParseTokenException, TokenExpiredException, TokenBlacklistedException, TokenNotFoundException;
 
     @PostMapping("/refresh")
     ResponseEntity<TokensResponse> refresh(@Valid @RequestBody RefreshTokenBodyModel refreshTokenBodyModel) throws TokenExpiredException, ParseTokenException, TokenBlacklistedException;
@@ -63,5 +63,5 @@ public interface UsersApi {
 
     @PutMapping("/firebase-token")
     ResponseEntity<DetailResponse> putFirebaseToken(@RequestHeader("Authorization") String accessToken,
-                                                    @Valid @RequestBody RefreshFirebaseTokenBodyModel refreshFirebaseTokenBodyModel);
+                                                    @Valid @RequestBody RefreshFirebaseTokenBodyModel refreshFirebaseTokenBodyModel) throws TokenExpiredException, ParseTokenException, TokenBlacklistedException, TokenNotFoundException;
 }

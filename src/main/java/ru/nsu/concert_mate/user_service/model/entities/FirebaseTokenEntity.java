@@ -18,4 +18,10 @@ public class FirebaseTokenEntity {
     public FirebaseTokenEntity(long userId, String token) {
         firebaseToken = new FirebaseTokenEmbeddedEntity(userId, token);
     }
+    public long getUserId(){
+        return firebaseToken.getUserId();
+    }
+    public String getToken(){
+        return firebaseToken.getToken();
+    }
 }

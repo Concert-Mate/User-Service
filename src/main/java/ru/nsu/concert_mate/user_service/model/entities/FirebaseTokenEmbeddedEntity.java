@@ -6,6 +6,7 @@ import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
@@ -17,6 +18,7 @@ import java.io.Serializable;
 @EqualsAndHashCode
 @NoArgsConstructor
 @AllArgsConstructor
+@Getter
 public class FirebaseTokenEmbeddedEntity implements Serializable {
     @Column(name = "user_id", nullable = false)
     private long userId;

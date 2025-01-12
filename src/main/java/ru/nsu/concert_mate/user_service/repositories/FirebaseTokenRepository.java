@@ -10,5 +10,9 @@ import java.util.Optional;
 public interface FirebaseTokenRepository extends CrudRepository<FirebaseTokenEntity, FirebaseTokenEmbeddedEntity> {
     @Query(value = "SELECT * FROM public.users_firebase_tokens WHERE token = :token",
             nativeQuery = true)
-    Optional<FirebaseTokenEntity> findByToken(long token);
+    Optional<FirebaseTokenEntity> findByToken(String token);
+
+    @Query(value = "SELECT * FROM public.users_firebase_tokens WHERE user_id = :user_id",
+            nativeQuery = true)
+    Optional<FirebaseTokenEntity> findByUserId(long user_id);
 }

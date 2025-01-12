@@ -19,6 +19,7 @@ import ru.nsu.concert_mate.user_service.services.cities.CitiesServiceException;
 import ru.nsu.concert_mate.user_service.services.cities.CityNotFoundException;
 import ru.nsu.concert_mate.user_service.services.cities.CitySearchByNameCode;
 import ru.nsu.concert_mate.user_service.services.email.EmailService;
+import ru.nsu.concert_mate.user_service.services.firebase.FirebaseMessagingService;
 import ru.nsu.concert_mate.user_service.services.music.MusicService;
 import ru.nsu.concert_mate.user_service.services.music.exceptions.MusicServiceException;
 import ru.nsu.concert_mate.user_service.services.users.*;
@@ -41,6 +42,8 @@ public class UsersController implements UsersApi {
     private final EmailService emailService;
     private final RefreshTokensService refreshTokensService;
     private final AccessTokensService accessTokensService;
+    private final FirebaseService firebaseService;
+    private final FirebaseMessagingService firebaseMessagingService;
     @Value("${spring.auth.access-token-expiration-time}")
     private long ACCESS_TOKEN_EXPIRATION_TIME;
     @Value("${spring.auth.refresh-token-expiration-time}")
@@ -85,15 +88,17 @@ public class UsersController implements UsersApi {
                 .signWith(secretKey)
                 .compact();
         TokensResponse tokensResponse = new TokensResponse(accessToken, refreshToken);
+        firebaseService.addToken(loginEmailCodeFormModel.getFirebaseToken(), user.getId());
         return ResponseEntity.ok(tokensResponse);
     }
 
 
     @Override
-    public ResponseEntity<DetailResponse> logout(String accessToken, LogoutBodyModel logoutBodyModel) throws ParseTokenException, TokenExpiredException, TokenBlacklistedException {
+    public ResponseEntity<DetailResponse> logout(String accessToken, LogoutBodyModel logoutBodyModel) throws ParseTokenException, TokenExpiredException, TokenBlacklistedException, TokenNotFoundException {
         verifyAccessToken(accessToken);
         accessTokensService.blacklistToken(accessToken);
         refreshTokensService.blacklistToken(logoutBodyModel.getRefreshToken());
+        firebaseService.deleteToken(logoutBodyModel.getFirebaseToken());
         return ResponseEntity.ok(new DetailResponse("Tokens successfully blacklisted"));
     }
 
@@ -233,8 +238,17 @@ public class UsersController implements UsersApi {
     }
 
     @Override
-    public ResponseEntity<DetailResponse> putFirebaseToken(String accessToken, RefreshFirebaseTokenBodyModel refreshFirebaseTokenBodyModel) {
-        return null;
+    public ResponseEntity<DetailResponse> putFirebaseToken(String accessToken, RefreshFirebaseTokenBodyModel refreshFirebaseTokenBodyModel) throws TokenExpiredException, ParseTokenException, TokenBlacklistedException, TokenNotFoundException {
+        verifyAccessToken(accessToken);
+        AccessToken token = AccessToken.parseFromString(accessToken);
+        if(refreshFirebaseTokenBodyModel.getOldToken() == null){
+            firebaseService.addToken(refreshFirebaseTokenBodyModel.getNewToken(), Long.parseLong(token.getSub()));
+            return ResponseEntity.ok(new DetailResponse("Firebase token successfully added"));
+        }
+        else {
+            firebaseService.updateToken(refreshFirebaseTokenBodyModel.getOldToken(), refreshFirebaseTokenBodyModel.getNewToken());
+            return ResponseEntity.ok(new DetailResponse("Firebase token successfully updated"));
+        }
     }
 
     private void saveShownConcertNoException(long telegramId, String concertUrl) {
